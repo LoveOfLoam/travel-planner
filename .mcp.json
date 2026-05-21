@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "amap": {
+      "transport": "streamable_http",
+      "url": "https://mcp.amap.com/mcp?key=af0f69c10136954b4ff0527b2ecded71"
+    }
+  }
+}
