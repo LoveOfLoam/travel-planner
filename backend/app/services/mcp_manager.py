@@ -1,4 +1,5 @@
 import asyncio
+import copy
 import json
 from pathlib import Path
 from typing import Optional
@@ -35,25 +36,47 @@ _MCP_CONFIG_PATH = Path(__file__).parent.parent.parent.parent / ".mcp.json"
 
 
 def _load_mcp_server_configs() -> dict:
-    """加载 MCP 服务器配置，优先用环境变量，否则读 .mcp.json"""
+    """加载 MCP 服务器配置，优先用环境变量，否则读 .mcp.json。
+
+    .mcp.json 中的 URL 可以使用 {AMAP_API_KEY} 占位符，
+    启动时自动从 AMAP_API_KEY 环境变量注入。
+    """
     from app.core.config import get_settings
     settings = get_settings()
 
     if settings.mcp_servers_json:
         try:
-            return json.loads(settings.mcp_servers_json)
+            servers = json.loads(settings.mcp_servers_json)
         except json.JSONDecodeError:
             logger.warning("MCP_SERVERS_JSON 解析失败，回退到 .mcp.json")
+            servers = None
+    else:
+        servers = None
 
-    if _MCP_CONFIG_PATH.exists():
+    if servers is None and _MCP_CONFIG_PATH.exists():
         with open(_MCP_CONFIG_PATH, "r", encoding="utf-8") as f:
             raw = json.load(f)
         servers = raw.get("mcpServers", {})
-        if servers:
-            return servers
 
-    logger.warning("未找到 MCP 服务器配置")
-    return {}
+    if not servers:
+        logger.warning("未找到 MCP 服务器配置")
+        return {}
+
+    if settings.amap_api_key:
+        servers = _inject_api_keys(servers, settings.amap_api_key)
+
+    return servers
+
+
+def _inject_api_keys(servers: dict, amap_key: str) -> dict:
+    """将 API Key 注入 MCP 服务器 URL 中的占位符。"""
+    result = copy.deepcopy(servers)
+    for name, config in result.items():
+        url = config.get("url", "")
+        if "{AMAP_API_KEY}" in url:
+            config["url"] = url.replace("{AMAP_API_KEY}", amap_key)
+            logger.info(f"MCP 配置注入 API Key | server={name}")
+    return result
 
 
 class MCPManager:

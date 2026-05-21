@@ -84,11 +84,12 @@ User Message (Chinese NL)
 git clone https://github.com/LoveOfLoam/travel-planner.git
 cd travel-planner
 
-# Copy and edit the environment file
+# Copy and edit the environment file (needed in both root/ and backend/)
 cp .env.example .env
+cp .env.example backend/.env
 ```
 
-Edit `.env` with your API keys:
+Edit both `.env` files with your API keys:
 
 ```env
 OPENAI_API_KEY=sk-your-deepseek-key
@@ -97,18 +98,7 @@ AMAP_API_KEY=your-amap-key
 DEFAULT_MODEL=deepseek-v4-pro
 ```
 
-Also update `.mcp.json` with your Amap key:
-
-```json
-{
-  "mcpServers": {
-    "amap": {
-      "transport": "streamable_http",
-      "url": "https://mcp.amap.com/mcp?key=YOUR_AMAP_KEY"
-    }
-  }
-}
-```
+The Amap key is injected automatically: `.mcp.json` contains `{AMAP_API_KEY}` as a placeholder, which gets replaced at startup with the value from `AMAP_API_KEY` in `.env`. You don't need to edit `.mcp.json` directly.
 
 ### 2. Docker (All Services)
 
